@@ -2,7 +2,6 @@ import time
 import requests
 from PIL import Image
 from io import BytesIO
-from IPython.display import display
 import concurrent.futures
 from bs4 import BeautifulSoup
 
@@ -18,9 +17,9 @@ headers2 = {
     'Cookie': f'JSESSIONID={jsessionid}'
 }
 
-def CheckSiteIsOpen():
-    response = requests.get('https://portal.aut.ac.ir/aportal/regadm/student.portal/student.portal.jsp?action=edit&st_info=register&st_sub_info=0', cookies=cookies, headers=headers2)
-    return 'درس را اضافه کن' in response.text
+# def CheckSiteIsOpen():
+#     response = requests.get('https://portal.aut.ac.ir/aportal/regadm/student.portal/student.portal.jsp?action=edit&st_info=register&st_sub_info=0', cookies=cookies, headers=headers2)
+#     return 'درس را اضافه کن' in response.text
 
 def get_captcha_code():
     response = requests.get('https://portal.aut.ac.ir/aportal/PassImageServlet', cookies=cookies, headers=headers2)
@@ -64,31 +63,28 @@ def send_request(st_reg_courseid, st_reg_groupno, addpassline, failed_requests):
         print(response.text)
 
 while True:
-    if CheckSiteIsOpen():
-        print("site open ....")
-        addpassline = get_captcha_code()
+    print("site open ....")
+    addpassline = get_captcha_code()
 
-        failed_requests = []
+    failed_requests = []
 
-        with open('course.txt', 'r') as file:
-            lines = [line.strip().split() for line in file]
+    with open('course.txt', 'r') as file:
+        lines = [line.strip().split() for line in file]
 
-        while True:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                futures = [executor.submit(send_request, st_reg_courseid, st_reg_groupno, addpassline, failed_requests) for st_reg_courseid, st_reg_groupno in lines]
-                for future in concurrent.futures.as_completed(futures):
-                    future.result()
-            
-            if not failed_requests:
-                break
-
-            print("Retrying failed requests...")
-            lines = failed_requests.copy()
-            failed_requests.clear()
-            addpassline = get_captcha_code()
+    while True:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(send_request, st_reg_courseid, st_reg_groupno, addpassline, failed_requests) for st_reg_courseid, st_reg_groupno in lines]
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
         
-        print("The mission was successfully completed :)")
-        exit()
-    else:
-        print("site not open ...")
-        time.sleep(1)
+        if not failed_requests:
+            break
+
+        print("Retrying failed requests...")
+        lines = failed_requests.copy()
+        failed_requests.clear()
+        addpassline = get_captcha_code()
+    
+    print("The mission was successfully completed :)")
+    exit()
+
